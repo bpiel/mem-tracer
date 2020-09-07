@@ -49,8 +49,9 @@
 
 (defconst sayid-version
   (eval-when-compile
-    (lm-version (or load-file-name buffer-file-name)))
-  "The current version of `clojure-mode'.")
+    (lm-version (if (boundp 'load-true-file-name)
+                    load-true-file-name load-file-name)))
+  "The current version of `sayid-mode'.")
 
 
 (defface sayid-int-face '((t :inherit default))
