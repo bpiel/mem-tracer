@@ -564,12 +564,13 @@ Disable traces, load buffer, enable traces, clear log."
   (sayid-show-traced))
 
 ;;;###autoload
-(defun sayid-trace-ns-by-pattern ()
+(defun sayid-trace-ns-by-pattern (ns-pattern)
   "Trace all namespaces that match specified pattern."
-  (interactive)
+  (interactive (list
+                (read-string "Namespace to trace (*=wildcard) "
+                             (cider-current-ns))))
   (nrepl-send-sync-request (list "op" "sayid-trace-ns-by-pattern"
-                                 "ns-pattern" (read-string "Namespace to trace (*=wildcard) "
-                                                           (cider-current-ns))
+                                 "ns-pattern" ns-pattern
                                  "ref-ns" (cider-current-ns))
                            (cider-current-connection))
   (sayid-show-traced))
