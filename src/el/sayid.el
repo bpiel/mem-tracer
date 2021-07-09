@@ -564,12 +564,13 @@ Disable traces, load buffer, enable traces, clear log."
   (sayid-show-traced))
 
 ;;;###autoload
-(defun sayid-trace-ns-by-pattern ()
+(defun sayid-trace-ns-by-pattern (ns-pattern)
   "Trace all namespaces that match specified pattern."
-  (interactive)
+  (interactive (list
+                (read-string "Namespace to trace (*=wildcard) "
+                             (cider-current-ns))))
   (nrepl-send-sync-request (list "op" "sayid-trace-ns-by-pattern"
-                                 "ns-pattern" (read-string "Namespace to trace (*=wildcard) "
-                                                           (cider-current-ns))
+                                 "ns-pattern" ns-pattern
                                  "ref-ns" (cider-current-ns))
                            (cider-current-connection))
   (sayid-show-traced))
@@ -718,19 +719,30 @@ Disable traces, load buffer, enable traces, clear log."
         (setq paths (cdr paths)))
       (car paths))))
 
+(defun sayid-buffer-file-at-point ()
+  "Return file path for function at point in sayid buffer."
+  (interactive)
+  (let* ((file (get-text-property (point) 'src-file))
+         (xfile (sayid-find-existing-file file)))
+    (if xfile
+        xfile
+      (user-error (concat "File not found: " file)))))
+
+(defun sayid-buffer-line-at-point ()
+  "Return line number for function at point in sayid buffer."
+  (get-text-property (point) 'src-line))
+
 ;;;###autoload
 (defun sayid-buffer-nav-from-point ()
   "Navigate from sayid buffer to function source."
   (interactive)
-  (let* ((file (get-text-property (point) 'src-file))
-         (line (get-text-property (point) 'src-line))
-         (xfile (sayid-find-existing-file file)))
-    (if xfile
-        (progn
-          (pop-to-buffer (find-file-noselect xfile))
-          (goto-char (point-min))
-          (forward-line (- line 1)))
-      (message (concat "File not found: " file)))))
+  (let ((line (sayid-buffer-line-at-point))
+        (file (sayid-buffer-file-at-point)))
+    (when file
+      (progn
+        (pop-to-buffer (find-file-noselect file))
+        (goto-char (point-min))
+        (forward-line (- line 1))))))
 
 ;;;###autoload
 (defun sayid-buffer-nav-to-prev ()
@@ -870,8 +882,8 @@ Disable traces, load buffer, enable traces, clear log."
   "Try to generate an expression that will reproduce traced call.
 Place expression in kill ring."
   (interactive)
-  (let ((expr (sayid-req-get-value (list "op" "sayid-gen-instance-expr"
-                                         "trace-id" (get-text-property (point) 'id)))))
+  (let ((expr (prin1-to-string (sayid-req-get-value (list "op" "sayid-gen-instance-expr"
+                                         "trace-id" (get-text-property (point) 'id))))))
     (kill-new expr)
     (message (concat "Written to kill ring: " expr))
     (sayid-buffer-nav-from-point)))
